@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: include psaclone aliases
+      include_tasks: '/psa/psaclone/ymls/alias.yml'
+
+    - debug: msg="Combined Path - {{multihds}}"
+
+    - name: Install Union Script
+      template:
+        src: /psa/psaclone/source/local.sh
+        dest: /psa/rclone/psaunity.sh
+        force: yes
+
+    - name: Install PSAUnity Service
+      template:
+        src: /psa/psaclone/mounts/psaunity.service
+        dest: /etc/systemd/system/psaunity.service
+        force: yes
+
+    - name: Reload PSAUnity Service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: reloaded
+        name: psaunity
+
+    - name: Sleep 2 Seconds
+      wait_for: timeout=2
+
+    - name: Restart All Docker Containers
+      shell: docker restart $(docker ps -a -q)

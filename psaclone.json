@@ -1,0 +1,14 @@
+{
+    "_comment": "",
+    "version": 1,
+    "bs": "16M",
+    "dcs": "128M",
+    "dct": "5m",
+    "cma": "1h",
+    "rcs": "64M",
+    "rcsl": "1024M",
+    "cm": "writes",
+    "cms": "off",
+    "drive": "",
+    "resetvalues": "no"
+}

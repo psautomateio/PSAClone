@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+[Unit]
+Description={{drive}} Daemon
+After=multi-user.target
+
+[Service]
+Type=simple
+User=0
+Group=0
+ExecStart=/usr/bin/rclone mount {{drive}}: /psa/{{drive}} \
+--config /psa/rclone/psablitz.conf \
+--allow-non-empty \
+--allow-other \
+--size-only \
+--uid=1000 --gid=1000 \
+--umask 002 \
+--log-file=/psa/logs/{{drive}}.log \
+--log-level INFO \
+--timeout 1h \
+--drive-use-trash=false \
+--dir-cache-time {{dct}} \
+--vfs-cache-max-age {{cma}} \
+--vfs-read-chunk-size {{rcs}} \
+--vfs-read-chunk-size-limit {{rcsl}} \
+--drive-chunk-size {{dcs}} \
+--user-agent={{uagent.stdout}} \
+--buffer-size {{bs}}
+
+ExecStop=/bin/fusermount -uz /psa/{{drive}}
+TimeoutStopSec=20
+KillMode=process
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

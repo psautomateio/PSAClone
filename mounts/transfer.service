@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+[Unit]
+Description='PSAutomates Transfer Service'
+After=multi-user.target network-online.target
+
+[Service]
+Type=simple
+User=0
+Group=0
+ExecStart=/bin/bash /psa/psaclone/source/loop.sh
+TimeoutStopSec=20
+KillMode=process
+RemainAfterExit=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

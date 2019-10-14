@@ -1,0 +1,188 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: include psaclone aliases
+      include_tasks: '/psa/psaclone/ymls/alias.yml'
+
+    - debug: msg="PSABlitz Type - {{transport}}"
+    - debug: msg="HD Path - {{hdpath}}"
+
+    - name: 'If Fact Matches - SDrive Encrypted'
+      set_fact:
+        path: 'remotes = gd: sd: gc: sc: {{hdpath}}/move'
+      when: transport == "sc"
+
+    - name: 'If Fact Matches - GDrive Encrypted'
+      set_fact:
+        path: 'remotes = gd: gc: {{hdpath}}/move'
+      when: transport == "gc"
+
+    - name: 'If Fact Matches - SDrive Unencrypted'
+      set_fact:
+        path: 'remotes = gd: sd: {{hdpath}}/move'
+      when: transport == "sd"
+
+    - name: 'If Fact Matches - GDrive Unencrypted'
+      set_fact:
+        path: 'remotes = gd: {{hdpath}}/move'
+      when: transport == "gd"
+
+    - name: Creating required paths
+      file: 'path={{hdpath}}/{{item}} state=directory mode=0775 owner=1000 group=1000 recurse=true'
+      with_items:
+        - 'move'
+        - 'downloads'
+        - 'incomplete'
+
+    - name: Creating Logs Path
+      file: 'path=/psa/{{item}} state=directory mode=0775 owner=1000 group=1000 recurse=true'
+      with_items:
+        - 'logs'
+
+    - name: 'Setting ownership on logs'
+      shell: 'chown -R 1000:1000 /psa/logs'
+
+    - name: 'Setting ownership'
+      shell: 'chown -R 1000:1000 {{hdpath}}/{{item}}'
+      with_items:
+        - 'move'
+        - 'downloads'
+        - 'incomplete'
+
+    - name: 'Setting permissions'
+      shell: 'chmod -R 775 {{hdpath}}/{{item}}'
+      with_items:
+        - 'move'
+        - 'downloads'
+        - 'incomplete'
+
+    - name: Transport Type
+      shell: 'echo "" >> /psa/rclone/psablitz.conf'
+
+    - name: Line Rmur
+      shell: 'sed -i -e "/\[(unionfs|psaunity)\]/,+2d" /psa/rclone/psablitz.conf'
+
+    - name: Transport Type
+      shell: |
+        echo "[psaunity]" >> /psa/rclone/psablitz.conf
+        echo "type = union" >> /psa/rclone/psablitz.conf
+        echo "{{path}}" >> /psa/rclone/psablitz.conf
+
+    - name: 'PSA Blitz Execution'
+      block:
+
+        - name: Bandwidth Limit
+          shell: 'cat /psa/var/blitz.bw'
+          register: bandwidth
+
+        - name: Install Transfer Script
+          template:
+            src: /psa/psaclone/source/transfer.sh
+            dest: /psa/rclone/transfer.sh
+            force: yes
+
+        - name: Install Loop Script
+          template:
+            src: /psa/psaclone/source/loop.sh
+            dest: /psa/rclone/loop.sh
+            force: yes
+
+        - name: Install Transfer Service
+          template:
+            src: /psa/psaclone/mounts/transfer.service
+            dest: /etc/systemd/system/transfer.service
+            force: yes
+
+        - name: Reload Transfer Service
+          systemd:
+            daemon_reload: yes
+            enabled: yes
+            state: reloaded
+            name: transfer
+
+      when: (transport == "gd") or
+        (transport == "gc")
+
+    - name: 'PG Move Execution'
+      block:
+        - name: Bandwidth Limit
+          shell: 'cat /psa/var/move.bw'
+          register: bandwidth
+
+        - name: Deploy Version
+          shell: 'cat /psa/rclone/deploy.version'
+          register: ver
+
+        - name: Register HD Path
+          shell: 'cat /psa/var/server.hd.path'
+          register: hdpath
+
+        - name: Install Transfer Script
+          template:
+            src: /psa/psaclone/source/transfer.sh
+            dest: /psa/rclone/transfer.sh
+            force: yes
+
+        - name: Install Loop Script
+          template:
+            src: /psa/psaclone/source/loop.sh
+            dest: /psa/rclone/loop.sh
+            force: yes
+
+        - name: Install Transfer Service
+          template:
+            src: /psa/psaclone/mounts/transfer.service
+            dest: /etc/systemd/system/transfer.service
+            force: yes
+
+        - name: Reload Transfer Service
+          systemd:
+            daemon_reload: yes
+            enabled: yes
+            state: reloaded
+            name: transfer
+
+      when: (transport == "sc") or
+        (transport == "sd")
+
+    - name: Install PSAUnity Script
+      template:
+        src: /psa/psaclone/source/psaunity.sh
+        dest: /psa/rclone/psaunity.sh
+        force: yes
+
+    - name: Install PSAUnity Service
+      template:
+        src: /psa/psaclone/mounts/psaunity.service
+        dest: /etc/systemd/system/psaunity.service
+        force: yes
+
+    - name: Reload PSAUnity Service
+      systemd:
+        daemon_reload: yes
+        enabled: yes
+        state: reloaded
+        name: psaunity
+
+    - name: 'Waiting for PSAUnity to initialize'
+      wait_for:
+        path: /psa/unity/psautomate
+        timeout: 15
+        delay: 2
+
+    - name: Register HD Path
+      shell: 'cat /psa/var/server.hd.path'
+      register: hdpath
+
+    - name: Restart All Docker Containers
+      shell: docker restart $(docker ps -a -q)

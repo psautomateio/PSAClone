@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    service_vars:
+      - {name: crypt.service}
+      - {name: gd.service}
+      - {name: gc.service}
+      - {name: sd.service}
+      - {name: sc.service}
+      - {name: psaunity.service}
+      - {name: transfer.service}
+  tasks:
+    - name: Stop All Docker Containers
+      shell: docker stop $(docker ps -a -q)
+      ignore_errors: yes
+
+    - name: Checking Existing Service Name
+      stat:
+        path: "/etc/systemd/system/{{ item.name }}"
+      with_items: "{{ service_vars }}"
+      register: check_service_name
+
+    - name: Stop If Service Is Running
+      systemd: state=stopped name={{ item.item.name }} daemon_reload=yes enabled=no
+      with_items: "{{ check_service_name.results }}"
+      when: item.stat.exists
+
+    - name: Remove Services
+      file:
+        path: "/etc/systemd/system/{{ item.item.name }}"
+        state: absent
+      with_items: "{{ check_service_name.results }}"
+      when: item.stat.exists

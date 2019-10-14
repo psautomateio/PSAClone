@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Title:      PSAutomate
+# Based On:   PGBlitz (Reference Title File)
+# Original Author(s):  Admin9705 - Deiteq
+# PSAutomate Auther: fattylewis
+# URL:        https://psautomate.io - http://github.psautomate.io
+# GNU:        General Public License v3.0
+################################################################################
+---
+- name: Removing Old Service Helpers
+  file:
+    path: "/bin/{{item}}"
+    state: absent
+  with_items:
+    - edit-gc
+    - edit-gd
+    - edit-transport
+    - edit-psaunity
+    - edit-rclone
+    - edit-sc
+    - edit-sd
+    - status-transport
+    - status-gc
+    - status-gd
+    - status-psaunity
+    - status-rclone
+    - status-gc
+    - status-sd
+
+- name: Installing Service helpers
+  template:
+    src: "/psa/psaclone/templates/{{item}}"
+    dest: /bin/{{item}}
+    force: yes
+    mode: 0775
+  with_items:
+    - edit-gc
+    - edit-gd
+    - edit-transport
+    - edit-psaunity
+    - edit-rclone
+    - edit-sc
+    - edit-sd
+    - status-transport
+    - status-gc
+    - status-gd
+    - status-psaunity
+    - status-rclone
+    - status-gc
+    - status-sd
